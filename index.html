@@ -4,8 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Eventos A, AA y AAA</title>
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+
   <style>
     body {
       margin: 0;
@@ -13,11 +15,13 @@
       background: #000;
       color: #fff;
     }
+
     .wrap {
       max-width: 1400px;
       margin: 0 auto;
       padding: 24px;
     }
+
     .card {
       background: #111;
       border: 1px solid #222;
@@ -25,12 +29,21 @@
       padding: 20px;
       box-shadow: 0 2px 12px rgba(255,255,255,0.06);
     }
+
     h2 {
       margin-top: 0;
+      color: #fff;
     }
+
     .filters {
       margin-bottom: 16px;
     }
+
+    label {
+      font-weight: 600;
+      margin-right: 8px;
+    }
+
     select {
       padding: 8px 12px;
       border-radius: 8px;
@@ -38,12 +51,15 @@
       background: #000;
       color: #fff;
     }
+
     .chart-box {
       height: 600px;
     }
+
     canvas {
       width: 100% !important;
       height: 100% !important;
+      background: #000;
     }
   </style>
 </head>
@@ -69,15 +85,17 @@
   </div>
 
   <script>
+    Chart.register(ChartDataLabels);
+
     const data = [
       { fecha: '2026-06-11', tipo: 'AA', aforo: 16029 },
       { fecha: '2026-06-12', tipo: 'AA', aforo: 11266 },
       { fecha: '2026-06-13', tipo: 'AAA', aforo: 63616 },
-      { fecha: '2026-06-14', tipo: 'AAA', aforo: 29814, etiqueta: 'Caballo Dorado'},
+      { fecha: '2026-06-14', tipo: 'AAA', aforo: 29814, etiqueta: 'Caballo Dorado' },
       { fecha: '2026-06-15', tipo: 'A', aforo: 0 },
       { fecha: '2026-06-16', tipo: 'A', aforo: 3983 },
       { fecha: '2026-06-17', tipo: 'A', aforo: 3211 },
-      { fecha: '2026-06-18', tipo: 'AA', aforo: 105089, etiqueta: 'Mex vs Corea'},
+      { fecha: '2026-06-18', tipo: 'AA', aforo: 105089, etiqueta: 'Mex vs Corea' },
       { fecha: '2026-06-19', tipo: 'AA', aforo: 600 },
       { fecha: '2026-06-20', tipo: 'A', aforo: 29361 },
       { fecha: '2026-06-21', tipo: 'AAA', aforo: 80006, etiqueta: 'IMAGIN DRAGONS' },
@@ -121,17 +139,26 @@
       const labels = [...new Set(data.map(d => d.fecha))].sort();
 
       const datasets = tipos.map(t => {
-        const map = new Map(
-          data.filter(d => d.tipo === t).map(d => [d.fecha, d.aforo])
-        );
+        const filtered = data.filter(d => d.tipo === t);
+        const map = new Map(filtered.map(d => [d.fecha, d]));
 
         return {
           label: t,
-          data: labels.map(f => map.has(f) ? map.get(f) : null),
+          data: labels.map(f => map.has(f) ? map.get(f).aforo : null),
           backgroundColor: colors[t],
           borderColor: colors[t],
           borderWidth: 1,
-          borderRadius: 4
+          borderRadius: 4,
+          datalabels: {
+            color: '#fff',
+            anchor: 'end',
+            align: 'start',
+            clamp: true,
+            formatter: function(value, context) {
+              const item = map.get(labels[context.dataIndex]);
+              return item && item.etiqueta ? item.etiqueta : '';
+            }
+          }
         };
       });
 
@@ -141,7 +168,7 @@
         type: 'bar',
         data: {
           labels: labels.map(formatDate),
-          datasets
+          datasets: datasets
         },
         options: {
           responsive: true,
@@ -150,27 +177,58 @@
             legend: {
               labels: { color: '#fff' }
             },
+            datalabels: {
+              display: function(context) {
+                const item = data.find(d => {
+                  const label = formatDate(d.fecha);
+                  return label === context.chart.data.labels[context.dataIndex] && d.tipo === context.dataset.label;
+                });
+                return !!(item && item.etiqueta);
+              },
+              color: '#fff',
+              font: {
+                weight: 'bold',
+                size: 11
+              }
+            },
             tooltip: {
               backgroundColor: '#111',
               titleColor: '#fff',
               bodyColor: '#fff',
               callbacks: {
-                label: (c) => `${c.dataset.label}: ${c.raw == null ? 'Sin dato' : c.raw.toLocaleString('es-MX')}`
+                label: function(c) {
+                  const item = data.find(d => {
+                    const label = formatDate(d.fecha);
+                    return label === c.label && d.tipo === c.dataset.label;
+                  });
+
+                  const base = `${c.dataset.label}: ${c.raw == null ? 'Sin dato' : c.raw.toLocaleString('es-MX')}`;
+                  return item && item.etiqueta ? `${base} | ${item.etiqueta}` : base;
+                }
               }
             }
           },
           scales: {
             x: {
-              ticks: { color: '#fff', maxRotation: 60, minRotation: 60 },
-              grid: { color: 'rgba(255,255,255,0.08)' }
+              ticks: {
+                color: '#fff',
+                maxRotation: 60,
+                minRotation: 60
+              },
+              grid: {
+                color: 'rgba(255,255,255,0.08)'
+              }
             },
             y: {
               beginAtZero: true,
               ticks: { color: '#fff' },
-              grid: { color: 'rgba(255,255,255,0.08)' }
+              grid: {
+                color: 'rgba(255,255,255,0.08)'
+              }
             }
           }
-        }
+        },
+        plugins: [ChartDataLabels]
       });
     }
 
