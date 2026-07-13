@@ -2,64 +2,91 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Eventos A, AA y AAA</title>
-
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 
   <style>
-    body {
+    html, body {
       margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
       font-family: Arial, sans-serif;
       background: #000;
       color: #fff;
     }
 
     .wrap {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 24px;
+      width: 100vw;
+      height: 100vh;
+      box-sizing: border-box;
+      padding: 12px;
     }
 
     .card {
+      width: 100%;
+      height: 100%;
       background: #111;
       border: 1px solid #222;
       border-radius: 14px;
-      padding: 20px;
-      box-shadow: 0 2px 12px rgba(255,255,255,0.06);
+      padding: 12px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
     }
 
     h2 {
-      margin-top: 0;
-      color: #fff;
+      margin: 0 0 10px 0;
+      font-size: 18px;
     }
 
     .filters {
-      margin-bottom: 16px;
+      margin-bottom: 10px;
     }
 
     label {
       font-weight: 600;
       margin-right: 8px;
+      font-size: 14px;
     }
 
     select {
-      padding: 8px 12px;
+      padding: 8px 10px;
       border-radius: 8px;
       border: 1px solid #444;
       background: #000;
       color: #fff;
+      font-size: 14px;
     }
 
     .chart-box {
-      height: 600px;
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      width: 100%;
     }
 
     canvas {
       width: 100% !important;
       height: 100% !important;
       background: #000;
+    }
+
+    @media (max-width: 768px) {
+      h2 {
+        font-size: 16px;
+      }
+
+      label, select {
+        font-size: 13px;
+      }
+
+      .card {
+        padding: 10px;
+      }
     }
   </style>
 </head>
@@ -148,8 +175,8 @@
           borderColor: colors[t],
           borderWidth: 1,
           borderRadius: 4,
-          barThickness: 22,
-          maxBarThickness: 28,
+          barThickness: window.innerWidth < 768 ? 12 : 22,
+          maxBarThickness: window.innerWidth < 768 ? 14 : 28,
           categoryPercentage: 0.9,
           barPercentage: 0.98
         };
@@ -166,12 +193,26 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          layout: {
+            padding: { top: 10, right: 8, bottom: 0, left: 8 }
+          },
           plugins: {
             legend: {
-              labels: { color: '#fff' }
+              labels: { color: '#fff', font: { size: window.innerWidth < 768 ? 10 : 12 } }
             },
             datalabels: {
+              display: function(context) {
+                const item = data.find(d => {
+                  const label = formatDate(d.fecha);
+                  return label === context.chart.data.labels[context.dataIndex] && d.tipo === context.dataset.label;
+                });
+                return !!(item && item.etiqueta);
+              },
               color: '#fff',
+              font: {
+                weight: 'bold',
+                size: window.innerWidth < 768 ? 9 : 11
+              },
               anchor: 'end',
               align: 'start',
               clamp: true,
@@ -193,7 +234,6 @@
                     const label = formatDate(d.fecha);
                     return label === c.label && d.tipo === c.dataset.label;
                   });
-
                   const base = `${c.dataset.label}: ${c.raw == null ? 'Sin dato' : c.raw.toLocaleString('es-MX')}`;
                   return item && item.etiqueta ? `${base} | ${item.etiqueta}` : base;
                 }
@@ -204,8 +244,9 @@
             x: {
               ticks: {
                 color: '#fff',
-                maxRotation: 60,
-                minRotation: 60
+                maxRotation: window.innerWidth < 768 ? 70 : 60,
+                minRotation: window.innerWidth < 768 ? 70 : 60,
+                font: { size: window.innerWidth < 768 ? 9 : 11 }
               },
               grid: {
                 color: 'rgba(255,255,255,0.08)'
@@ -213,7 +254,10 @@
             },
             y: {
               beginAtZero: true,
-              ticks: { color: '#fff' },
+              ticks: {
+                color: '#fff',
+                font: { size: window.innerWidth < 768 ? 9 : 11 }
+              },
               grid: {
                 color: 'rgba(255,255,255,0.08)'
               }
@@ -223,6 +267,10 @@
         plugins: [ChartDataLabels]
       });
     }
+
+    window.addEventListener('resize', () => {
+      renderChart();
+    });
 
     renderChart();
   </script>
