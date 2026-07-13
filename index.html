@@ -3,89 +3,72 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Timeline eventos A, AA y AAA</title>
+  <title>Eventos A, AA y AAA</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
+      margin: 0;
       font-family: Arial, sans-serif;
-      margin: 24px;
       background: #000;
       color: #fff;
     }
-    .card {
-      max-width: 1500px;
+    .wrap {
+      max-width: 1400px;
       margin: 0 auto;
+      padding: 24px;
+    }
+    .card {
       background: #111;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 2px 10px rgba(255,255,255,.08);
       border: 1px solid #222;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 2px 12px rgba(255,255,255,0.06);
     }
     h2 {
       margin-top: 0;
-      margin-bottom: 16px;
-      color: #fff;
     }
     .filters {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      margin-bottom: 18px;
-      flex-wrap: wrap;
+      margin-bottom: 16px;
     }
-    .filters label {
-      font-weight: 600;
-      color: #fff;
-    }
-    .filters select {
-      padding: 8px 10px;
-      border: 1px solid #444;
+    select {
+      padding: 8px 12px;
       border-radius: 8px;
-      min-width: 180px;
+      border: 1px solid #444;
       background: #000;
       color: #fff;
     }
-    .chart-wrap {
-      position: relative;
-      height: 580px;
+    .chart-box {
+      height: 600px;
     }
     canvas {
       width: 100% !important;
       height: 100% !important;
-      background: #000;
-    }
-    .note {
-      margin-top: 12px;
-      font-size: 14px;
-      color: #bbb;
     }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h2>Aforo máximo por tipo de evento</h2>
+  <div class="wrap">
+    <div class="card">
+      <h2>Aforo máximo por tipo de evento</h2>
 
-    <div class="filters">
-      abel for="tipo">Tipo de evento:</label>
-      <select id="tipo" onchange="renderChart()">
-        <option value="TODOS">Todos</option>
-        <option value="A">A</option>
-        <option value="AA">AA</option>
-        <option value="AAA">AAA</option>
-      </select>
-    </div>
+      <div class="filters">
+        <label for="tipo">Tipo de evento:</label>
+        <select id="tipo" onchange="renderChart()">
+          <option value="TODOS">Todos</option>
+          <option value="A">A</option>
+          <option value="AA">AA</option>
+          <option value="AAA">AAA</option>
+        </select>
+      </div>
 
-    <div class="chart-wrap">
-      anvas id="timelineChart"></canvas>
-    </div>
-
-    <div class="note">
-      Fondo negro, barras agrupadas y filtro por tipo de evento.
+      <div class="chart-box">
+        <canvas id="chart"></canvas>
+      </div>
     </div>
   </div>
 
   <script>
-    const dataOriginal = [
+    const data = [
       { fecha: '2026-06-11', tipo: 'AA', aforo: 16029 },
       { fecha: '2026-06-12', tipo: 'AA', aforo: 11266 },
       { fecha: '2026-06-13', tipo: 'AAA', aforo: 63616 },
@@ -118,37 +101,35 @@
       { fecha: '2026-07-11', tipo: 'AA', aforo: 24871 }
     ];
 
-    const colores = {
+    const colors = {
       A: '#4ea1ff',
       AA: '#ff9f43',
       AAA: '#55efc4'
     };
 
-    const ctx = document.getElementById('timelineChart').getContext('2d');
+    const ctx = document.getElementById('chart').getContext('2d');
     let chart;
 
-    function formatearFecha(fechaISO) {
-      const [y, m, d] = fechaISO.split('-');
+    function formatDate(iso) {
+      const [y, m, d] = iso.split('-');
       return `${d}/${m}/${y}`;
     }
 
     function renderChart() {
-      const tipoFiltro = document.getElementById('tipo').value;
-      const tipos = tipoFiltro === 'TODOS' ? ['A', 'AA', 'AAA'] : [tipoFiltro];
-      const fechas = [...new Set(dataOriginal.map(i => i.fecha))].sort();
+      const tipo = document.getElementById('tipo').value;
+      const tipos = tipo === 'TODOS' ? ['A', 'AA', 'AAA'] : [tipo];
+      const labels = [...new Set(data.map(d => d.fecha))].sort();
 
-      const datasets = tipos.map(tipo => {
-        const mapa = new Map(
-          dataOriginal
-            .filter(i => i.tipo === tipo)
-            .map(i => [i.fecha, i.aforo])
+      const datasets = tipos.map(t => {
+        const map = new Map(
+          data.filter(d => d.tipo === t).map(d => [d.fecha, d.aforo])
         );
 
         return {
-          label: tipo,
-          data: fechas.map(f => mapa.has(f) ? mapa.get(f) : null),
-          backgroundColor: colores[tipo],
-          borderColor: colores[tipo],
+          label: t,
+          data: labels.map(f => map.has(f) ? map.get(f) : null),
+          backgroundColor: colors[t],
+          borderColor: colors[t],
           borderWidth: 1,
           borderRadius: 4
         };
@@ -159,65 +140,34 @@
       chart = new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: fechas.map(formatearFecha),
-          datasets: datasets
+          labels: labels.map(formatDate),
+          datasets
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
             legend: {
-              position: 'top',
-              labels: {
-                color: '#fff'
-              }
-            },
-            title: {
-              display: true,
-              text: 'Timeline de eventos A, AA y AAA',
-              color: '#fff'
+              labels: { color: '#fff' }
             },
             tooltip: {
               backgroundColor: '#111',
               titleColor: '#fff',
               bodyColor: '#fff',
               callbacks: {
-                label: function(context) {
-                  const v = context.raw;
-                  return context.dataset.label + ': ' + (v === null ? 'Sin dato' : v.toLocaleString('es-MX'));
-                }
+                label: (c) => `${c.dataset.label}: ${c.raw == null ? 'Sin dato' : c.raw.toLocaleString('es-MX')}`
               }
             }
           },
           scales: {
             x: {
-              title: {
-                display: true,
-                text: 'Fecha',
-                color: '#fff'
-              },
-              ticks: {
-                color: '#fff',
-                maxRotation: 60,
-                minRotation: 60
-              },
-              grid: {
-                color: 'rgba(255,255,255,0.08)'
-              }
+              ticks: { color: '#fff', maxRotation: 60, minRotation: 60 },
+              grid: { color: 'rgba(255,255,255,0.08)' }
             },
             y: {
               beginAtZero: true,
-              title: {
-                display: true,
-                text: 'Aforo máximo',
-                color: '#fff'
-              },
-              ticks: {
-                color: '#fff'
-              },
-              grid: {
-                color: 'rgba(255,255,255,0.08)'
-              }
+              ticks: { color: '#fff' },
+              grid: { color: 'rgba(255,255,255,0.08)' }
             }
           }
         }
