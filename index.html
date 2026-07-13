@@ -90,7 +90,7 @@
     const data = [
       { fecha: '2026-06-11', tipo: 'AA', aforo: 16029 },
       { fecha: '2026-06-12', tipo: 'AA', aforo: 11266 },
-      { fecha: '2026-06-13', tipo: 'AAA', aforo: 63616, etiqueta: 'CHAYANE' },
+      { fecha: '2026-06-13', tipo: 'AAA', aforo: 63616 },
       { fecha: '2026-06-14', tipo: 'AAA', aforo: 29814, etiqueta: 'Caballo Dorado' },
       { fecha: '2026-06-15', tipo: 'A', aforo: 0 },
       { fecha: '2026-06-16', tipo: 'A', aforo: 3983 },
@@ -139,8 +139,7 @@
       const labels = [...new Set(data.map(d => d.fecha))].sort();
 
       const datasets = tipos.map(t => {
-        const filtered = data.filter(d => d.tipo === t);
-        const map = new Map(filtered.map(d => [d.fecha, d]));
+        const map = new Map(data.filter(d => d.tipo === t).map(d => [d.fecha, d]));
 
         return {
           label: t,
@@ -149,16 +148,10 @@
           borderColor: colors[t],
           borderWidth: 1,
           borderRadius: 4,
-          datalabels: {
-            color: '#fff',
-            anchor: 'end',
-            align: 'start',
-            clamp: true,
-            formatter: function(value, context) {
-              const item = map.get(labels[context.dataIndex]);
-              return item && item.etiqueta ? item.etiqueta : '';
-            }
-          }
+          barThickness: 22,
+          maxBarThickness: 28,
+          categoryPercentage: 0.9,
+          barPercentage: 0.98
         };
       });
 
@@ -168,7 +161,7 @@
         type: 'bar',
         data: {
           labels: labels.map(formatDate),
-          datasets: datasets
+          datasets
         },
         options: {
           responsive: true,
@@ -178,17 +171,16 @@
               labels: { color: '#fff' }
             },
             datalabels: {
-              display: function(context) {
+              color: '#fff',
+              anchor: 'end',
+              align: 'start',
+              clamp: true,
+              formatter: function(value, context) {
                 const item = data.find(d => {
                   const label = formatDate(d.fecha);
                   return label === context.chart.data.labels[context.dataIndex] && d.tipo === context.dataset.label;
                 });
-                return !!(item && item.etiqueta);
-              },
-              color: '#fff',
-              font: {
-                weight: 'bold',
-                size: 11
+                return item && item.etiqueta ? item.etiqueta : '';
               }
             },
             tooltip: {
