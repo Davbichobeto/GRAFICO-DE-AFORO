@@ -9,66 +9,55 @@
     body {
       font-family: Arial, sans-serif;
       margin: 24px;
-      background: #f4f6f9;
-      color: #222;
+      background: #000;
+      color: #fff;
     }
     .card {
-      max-width: 1400px;
+      max-width: 1500px;
       margin: 0 auto;
-      background: #fff;
+      background: #111;
       padding: 20px;
       border-radius: 12px;
-      box-shadow: 0 2px 10px rgba(0,0,0,.08);
+      box-shadow: 0 2px 10px rgba(255,255,255,.08);
+      border: 1px solid #222;
     }
     h2 {
       margin-top: 0;
       margin-bottom: 16px;
+      color: #fff;
     }
     .filters {
       display: flex;
-      flex-wrap: wrap;
       gap: 12px;
-      margin-bottom: 18px;
       align-items: center;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
     }
     .filters label {
       font-weight: 600;
-      margin-right: 6px;
+      color: #fff;
     }
-    .filters select,
-    .filters input {
+    .filters select {
       padding: 8px 10px;
-      border: 1px solid #ccc;
+      border: 1px solid #444;
       border-radius: 8px;
-      min-width: 160px;
-    }
-    .btn {
-      padding: 9px 14px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-    .btn-primary {
-      background: #2563eb;
-      color: white;
-    }
-    .btn-secondary {
-      background: #e5e7eb;
-      color: #111827;
+      min-width: 180px;
+      background: #000;
+      color: #fff;
     }
     .chart-wrap {
       position: relative;
-      height: 560px;
+      height: 580px;
     }
     canvas {
       width: 100% !important;
       height: 100% !important;
+      background: #000;
     }
     .note {
       margin-top: 12px;
       font-size: 14px;
-      color: #555;
+      color: #bbb;
     }
   </style>
 </head>
@@ -77,36 +66,21 @@
     <h2>Aforo máximo por tipo de evento</h2>
 
     <div class="filters">
-      <div>
-        <label for="tipo">Tipo:</label>
-        <select id="tipo">
-          <option value="TODOS">Todos</option>
-          <option value="A">A</option>
-          <option value="AA">AA</option>
-          <option value="AAA">AAA</option>
-        </select>
-      </div>
-
-      <div>
-        <label for="inicio">Desde:</label>
-        <input type="date" id="inicio">
-      </div>
-
-      <div>
-        <label for="fin">Hasta:</label>
-        <input type="date" id="fin">
-      </div>
-
-      <button class="btn btn-primary" onclick="aplicarFiltros()">Aplicar filtros</button>
-      <button class="btn btn-secondary" onclick="limpiarFiltros()">Limpiar</button>
+      abel for="tipo">Tipo de evento:</label>
+      <select id="tipo" onchange="renderChart()">
+        <option value="TODOS">Todos</option>
+        <option value="A">A</option>
+        <option value="AA">AA</option>
+        <option value="AAA">AAA</option>
+      </select>
     </div>
 
     <div class="chart-wrap">
-      <canvas id="timelineChart"></canvas>
+      anvas id="timelineChart"></canvas>
     </div>
 
     <div class="note">
-      Puedes filtrar por tipo de evento y por rango de fechas. Los valores sin dato aparecen como espacios vacíos.
+      Fondo negro, barras agrupadas y filtro por tipo de evento.
     </div>
   </div>
 
@@ -145,9 +119,9 @@
     ];
 
     const colores = {
-      A: '#1f77b4',
-      AA: '#ff7f0e',
-      AAA: '#2ca02c'
+      A: '#4ea1ff',
+      AA: '#ff9f43',
+      AAA: '#55efc4'
     };
 
     const ctx = document.getElementById('timelineChart').getContext('2d');
@@ -158,60 +132,55 @@
       return `${d}/${m}/${y}`;
     }
 
-    function construirDatos(tipoFiltro, inicio, fin) {
-      const filtrados = dataOriginal.filter(item => {
-        const cumpleTipo = tipoFiltro === 'TODOS' || item.tipo === tipoFiltro;
-        const cumpleInicio = !inicio || item.fecha >= inicio;
-        const cumpleFin = !fin || item.fecha <= fin;
-        return cumpleTipo && cumpleInicio && cumpleFin;
-      });
-
-      const fechas = [...new Set(filtrados.map(i => i.fecha))].sort();
-
+    function renderChart() {
+      const tipoFiltro = document.getElementById('tipo').value;
       const tipos = tipoFiltro === 'TODOS' ? ['A', 'AA', 'AAA'] : [tipoFiltro];
+      const fechas = [...new Set(dataOriginal.map(i => i.fecha))].sort();
 
       const datasets = tipos.map(tipo => {
         const mapa = new Map(
-          filtrados.filter(i => i.tipo === tipo).map(i => [i.fecha, i.aforo])
+          dataOriginal
+            .filter(i => i.tipo === tipo)
+            .map(i => [i.fecha, i.aforo])
         );
 
         return {
           label: tipo,
           data: fechas.map(f => mapa.has(f) ? mapa.get(f) : null),
+          backgroundColor: colores[tipo],
           borderColor: colores[tipo],
-          backgroundColor: colores[tipo] + '22',
-          tension: 0.25,
-          spanGaps: true,
-          pointRadius: 4,
-          pointHoverRadius: 6
+          borderWidth: 1,
+          borderRadius: 4
         };
       });
-
-      return { labels: fechas.map(formatearFecha), datasets };
-    }
-
-    function renderChart() {
-      const tipo = document.getElementById('tipo').value;
-      const inicio = document.getElementById('inicio').value;
-      const fin = document.getElementById('fin').value;
-
-      const data = construirDatos(tipo, inicio, fin);
 
       if (chart) chart.destroy();
 
       chart = new Chart(ctx, {
-        type: 'line',
-        data,
+        type: 'bar',
+        data: {
+          labels: fechas.map(formatearFecha),
+          datasets: datasets
+        },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: { position: 'top' },
+            legend: {
+              position: 'top',
+              labels: {
+                color: '#fff'
+              }
+            },
             title: {
               display: true,
-              text: 'Timeline de eventos A, AA y AAA'
+              text: 'Timeline de eventos A, AA y AAA',
+              color: '#fff'
             },
             tooltip: {
+              backgroundColor: '#111',
+              titleColor: '#fff',
+              bodyColor: '#fff',
               callbacks: {
                 label: function(context) {
                   const v = context.raw;
@@ -222,27 +191,37 @@
           },
           scales: {
             x: {
-              title: { display: true, text: 'Fecha' },
-              ticks: { maxRotation: 60, minRotation: 60 }
+              title: {
+                display: true,
+                text: 'Fecha',
+                color: '#fff'
+              },
+              ticks: {
+                color: '#fff',
+                maxRotation: 60,
+                minRotation: 60
+              },
+              grid: {
+                color: 'rgba(255,255,255,0.08)'
+              }
             },
             y: {
-              title: { display: true, text: 'Aforo máximo' },
-              beginAtZero: true
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Aforo máximo',
+                color: '#fff'
+              },
+              ticks: {
+                color: '#fff'
+              },
+              grid: {
+                color: 'rgba(255,255,255,0.08)'
+              }
             }
           }
         }
       });
-    }
-
-    function aplicarFiltros() {
-      renderChart();
-    }
-
-    function limpiarFiltros() {
-      document.getElementById('tipo').value = 'TODOS';
-      document.getElementById('inicio').value = '';
-      document.getElementById('fin').value = '';
-      renderChart();
     }
 
     renderChart();
