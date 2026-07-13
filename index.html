@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Timeline eventos A, AA y AAA</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 24px;
+      background: #f4f6f9;
+      color: #222;
+    }
+    .card {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.08);
+    }
+    h2 {
+      margin-top: 0;
+      margin-bottom: 16px;
+    }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 18px;
+      align-items: center;
+    }
+    .filters label {
+      font-weight: 600;
+      margin-right: 6px;
+    }
+    .filters select,
+    .filters input {
+      padding: 8px 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      min-width: 160px;
+    }
+    .btn {
+      padding: 9px 14px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-primary {
+      background: #2563eb;
+      color: white;
+    }
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+    .chart-wrap {
+      position: relative;
+      height: 560px;
+    }
+    canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+    .note {
+      margin-top: 12px;
+      font-size: 14px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Aforo máximo por tipo de evento</h2>
+
+    <div class="filters">
+      <div>
+        <label for="tipo">Tipo:</label>
+        <select id="tipo">
+          <option value="TODOS">Todos</option>
+          <option value="A">A</option>
+          <option value="AA">AA</option>
+          <option value="AAA">AAA</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="inicio">Desde:</label>
+        <input type="date" id="inicio">
+      </div>
+
+      <div>
+        <label for="fin">Hasta:</label>
+        <input type="date" id="fin">
+      </div>
+
+      <button class="btn btn-primary" onclick="aplicarFiltros()">Aplicar filtros</button>
+      <button class="btn btn-secondary" onclick="limpiarFiltros()">Limpiar</button>
+    </div>
+
+    <div class="chart-wrap">
+      <canvas id="timelineChart"></canvas>
+    </div>
+
+    <div class="note">
+      Puedes filtrar por tipo de evento y por rango de fechas. Los valores sin dato aparecen como espacios vacíos.
+    </div>
+  </div>
+
+  <script>
+    const dataOriginal = [
+      { fecha: '2026-06-11', tipo: 'AA', aforo: 16029 },
+      { fecha: '2026-06-12', tipo: 'AA', aforo: 11266 },
+      { fecha: '2026-06-13', tipo: 'AAA', aforo: 63616 },
+      { fecha: '2026-06-14', tipo: 'AAA', aforo: 29814 },
+      { fecha: '2026-06-15', tipo: 'A', aforo: 0 },
+      { fecha: '2026-06-16', tipo: 'A', aforo: 3983 },
+      { fecha: '2026-06-17', tipo: 'A', aforo: 3211 },
+      { fecha: '2026-06-18', tipo: 'AA', aforo: 105089 },
+      { fecha: '2026-06-19', tipo: 'AA', aforo: 600 },
+      { fecha: '2026-06-20', tipo: 'A', aforo: 29361 },
+      { fecha: '2026-06-21', tipo: 'A', aforo: 80006 },
+      { fecha: '2026-06-22', tipo: 'A', aforo: 3206 },
+      { fecha: '2026-06-24', tipo: 'AA', aforo: 26619 },
+      { fecha: '2026-06-25', tipo: 'AAA', aforo: 108239 },
+      { fecha: '2026-06-26', tipo: 'A', aforo: 9108 },
+      { fecha: '2026-06-27', tipo: 'AA', aforo: 42981 },
+      { fecha: '2026-06-28', tipo: 'AAA', aforo: 109313 },
+      { fecha: '2026-06-29', tipo: 'AA', aforo: 57799 },
+      { fecha: '2026-06-30', tipo: 'AAA', aforo: 125835 },
+      { fecha: '2026-07-01', tipo: 'A', aforo: 1916 },
+      { fecha: '2026-07-02', tipo: 'A', aforo: 15212 },
+      { fecha: '2026-07-03', tipo: 'AA', aforo: 14977 },
+      { fecha: '2026-07-04', tipo: 'AA', aforo: 37800 },
+      { fecha: '2026-07-05', tipo: 'AAA', aforo: 30377 },
+      { fecha: '2026-07-06', tipo: 'A', aforo: 1936 },
+      { fecha: '2026-07-07', tipo: 'AA', aforo: 13089 },
+      { fecha: '2026-07-08', tipo: 'A', aforo: 0 },
+      { fecha: '2026-07-09', tipo: 'A', aforo: 2629 },
+      { fecha: '2026-07-10', tipo: 'AA', aforo: 20207 },
+      { fecha: '2026-07-11', tipo: 'AA', aforo: 24871 }
+    ];
+
+    const colores = {
+      A: '#1f77b4',
+      AA: '#ff7f0e',
+      AAA: '#2ca02c'
+    };
+
+    const ctx = document.getElementById('timelineChart').getContext('2d');
+    let chart;
+
+    function formatearFecha(fechaISO) {
+      const [y, m, d] = fechaISO.split('-');
+      return `${d}/${m}/${y}`;
+    }
+
+    function construirDatos(tipoFiltro, inicio, fin) {
+      const filtrados = dataOriginal.filter(item => {
+        const cumpleTipo = tipoFiltro === 'TODOS' || item.tipo === tipoFiltro;
+        const cumpleInicio = !inicio || item.fecha >= inicio;
+        const cumpleFin = !fin || item.fecha <= fin;
+        return cumpleTipo && cumpleInicio && cumpleFin;
+      });
+
+      const fechas = [...new Set(filtrados.map(i => i.fecha))].sort();
+
+      const tipos = tipoFiltro === 'TODOS' ? ['A', 'AA', 'AAA'] : [tipoFiltro];
+
+      const datasets = tipos.map(tipo => {
+        const mapa = new Map(
+          filtrados.filter(i => i.tipo === tipo).map(i => [i.fecha, i.aforo])
+        );
+
+        return {
+          label: tipo,
+          data: fechas.map(f => mapa.has(f) ? mapa.get(f) : null),
+          borderColor: colores[tipo],
+          backgroundColor: colores[tipo] + '22',
+          tension: 0.25,
+          spanGaps: true,
+          pointRadius: 4,
+          pointHoverRadius: 6
+        };
+      });
+
+      return { labels: fechas.map(formatearFecha), datasets };
+    }
+
+    function renderChart() {
+      const tipo = document.getElementById('tipo').value;
+      const inicio = document.getElementById('inicio').value;
+      const fin = document.getElementById('fin').value;
+
+      const data = construirDatos(tipo, inicio, fin);
+
+      if (chart) chart.destroy();
+
+      chart = new Chart(ctx, {
+        type: 'line',
+        data,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top' },
+            title: {
+              display: true,
+              text: 'Timeline de eventos A, AA y AAA'
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const v = context.raw;
+                  return context.dataset.label + ': ' + (v === null ? 'Sin dato' : v.toLocaleString('es-MX'));
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: { display: true, text: 'Fecha' },
+              ticks: { maxRotation: 60, minRotation: 60 }
+            },
+            y: {
+              title: { display: true, text: 'Aforo máximo' },
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+
+    function aplicarFiltros() {
+      renderChart();
+    }
+
+    function limpiarFiltros() {
+      document.getElementById('tipo').value = 'TODOS';
+      document.getElementById('inicio').value = '';
+      document.getElementById('fin').value = '';
+      renderChart();
+    }
+
+    renderChart();
+  </script>
+</body>
+</html>
